@@ -18,12 +18,13 @@ uses(LazilyRefreshDatabase::class);
 
 test('a workflow with configured rules can be viewed', function () {
     $user = User::factory()->create();
-    $stage = StageDefinition::factory()->forStage(LoanStage::FraudCheck)->create();
+    $fraudStage = StageDefinition::factory()->forStage(LoanStage::FraudCheck)->create();
+    $guarantorStage = StageDefinition::factory()->forStage(LoanStage::GuarantorCheck)->create();
     $workflow = WorkflowConfiguration::factory()
-        ->withStep($stage, 1, [
+        ->withStep($fraudStage, 1, [
             'fraudPrefix' => 'FRAUD',
-            'guarantorRequired' => true,
         ])
+        ->withStep($guarantorStage, 2, ['guarantorRequired' => true])
         ->create();
 
     Filament::setCurrentPanel(Filament::getPanel('admin'));
@@ -31,6 +32,8 @@ test('a workflow with configured rules can be viewed', function () {
     Livewire::actingAs($user)
         ->test(ViewWorkflowConfiguration::class, ['record' => $workflow->getRouteKey()])
         ->assertOk()
+        ->assertSee($fraudStage->name)
+        ->assertSee($guarantorStage->name)
         ->assertSee('Fraud Prefix: FRAUD')
         ->assertSee('Guarantor Required: Yes');
 });

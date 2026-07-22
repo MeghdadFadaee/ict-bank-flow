@@ -5,6 +5,7 @@ namespace App\Filament\Resources\WorkflowConfigurations\Pages;
 use App\Actions\WorkflowConfiguration\PublishWorkflowConfigurationAction;
 use App\Filament\Resources\WorkflowConfigurations\WorkflowConfigurationResource;
 use App\Models\User;
+use App\Models\WorkflowConfiguration;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Notifications\Notification;
@@ -19,6 +20,14 @@ class ViewWorkflowConfiguration extends ViewRecord
     public function boot(PublishWorkflowConfigurationAction $publishWorkflowConfiguration): void
     {
         $this->publishWorkflowConfiguration = $publishWorkflowConfiguration;
+    }
+
+    protected function resolveRecord(int|string $key): WorkflowConfiguration
+    {
+        /** @var WorkflowConfiguration $record */
+        $record = parent::resolveRecord($key);
+
+        return $record->loadMissing('steps.stageDefinition');
     }
 
     protected function getHeaderActions(): array
