@@ -22,6 +22,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'credit_score',
     'has_guarantor',
     'status',
+    'manager_approved_by',
+    'manager_approved_at',
+    'manager_approval_note',
 ])]
 class Loan extends Model
 {
@@ -57,6 +60,11 @@ class Loan extends Model
         return $this->hasMany(LoanHistory::class);
     }
 
+    public function managerApprover(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'manager_approved_by');
+    }
+
     /**
      * @return array<string, string>
      */
@@ -68,6 +76,7 @@ class Loan extends Model
             'credit_score' => 'integer',
             'has_guarantor' => 'boolean',
             'status' => LoanStatus::class,
+            'manager_approved_at' => 'datetime',
         ];
     }
 }

@@ -60,6 +60,17 @@ class LoanInfolist
                         IconEntry::make('has_guarantor')->label('Has guarantor')->boolean(),
                     ])
                     ->columns(4),
+                Section::make('Manager approval')
+                    ->icon('heroicon-o-check-badge')
+                    ->visible(fn ($record): bool => $record->manager_approved_at !== null)
+                    ->schema([
+                        TextEntry::make('managerApprover.name')->label('Approved by')->placeholder('Deleted user'),
+                        TextEntry::make('manager_approved_at')->label('Approved at')->dateTime(),
+                        TextEntry::make('manager_approval_note')
+                            ->label('Decision note')
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(2),
             ]);
     }
 }

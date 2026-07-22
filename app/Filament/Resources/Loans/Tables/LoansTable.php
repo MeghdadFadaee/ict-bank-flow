@@ -2,8 +2,14 @@
 
 namespace App\Filament\Resources\Loans\Tables;
 
+use App\Actions\Loan\ApproveLoanAction;
 use App\Domain\Loan\Enums\LoanStatus;
+use App\Models\Loan;
+use App\Models\User;
+use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Textarea;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -76,6 +82,37 @@ class LoansTable
             ])
             ->defaultSort('created_at', 'desc')
             ->recordActions([
+                Action::make('managerApprove')
+                    ->label('Manager approve')
+                    ->icon('heroicon-o-check-badge')
+                    ->color('success')
+                    ->authorize('approve')
+                    ->visible(fn (Loan $record): bool => $record->status === LoanStatus::ManualReview)
+                    ->modalHeading('Approve this loan?')
+                    ->modalDescription('This is a final manager decision. The automatic workflow will not run again.')
+                    ->modalSubmitActionLabel('Approve loan')
+                    ->schema([
+                        Textarea::make('note')
+                            ->label('Manager decision note')
+                            ->placeholder('Explain why this application is approved...')
+                            ->helperText('This note is stored with the loan for audit purposes.')
+                            ->required()
+                            ->minLength(10)
+                            ->maxLength(500)
+                            ->rows(4),
+                    ])
+                    ->action(function (array $data, Loan $record, ApproveLoanAction $approveLoan): void {
+                        $manager = auth()->user();
+                        abort_unless($manager instanceof User, 403);
+
+                        $approveLoan->handle($record, $manager, $data['note']);
+
+                        Notification::make()
+                            ->title('Loan approved')
+                            ->body("{$record->public_id} was approved by manager decision.")
+                            ->success()
+                            ->send();
+                    }),
                 ViewAction::make(),
             ])
             ->emptyStateHeading('No loan applications')

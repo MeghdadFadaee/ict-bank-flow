@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Domain\Loan\Enums\LoanStatus;
 use App\Models\Loan;
 use App\Models\User;
 
@@ -37,6 +38,11 @@ class LoanPolicy
     public function update(User $user, Loan $loan): bool
     {
         return false;
+    }
+
+    public function approve(User $user, Loan $loan): bool
+    {
+        return $loan->status === LoanStatus::ManualReview;
     }
 
     /**

@@ -61,6 +61,7 @@ class LoanResource extends Resource
                 'loanType:id,name,code',
                 'workflowConfiguration:id,name,version',
                 'currentStep.stageDefinition:id,name,code',
+                'managerApprover:id,name',
             ]);
     }
 }
