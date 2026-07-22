@@ -1,93 +1,139 @@
-# bank-flow
+# BankFlow
 
+[English](README.md) | [فارسی](README.fa.md)
 
+BankFlow is a Laravel service for submitting and processing personal and business loan applications. Each loan is assigned an immutable, versioned workflow; processing executes its configured stages synchronously and records an auditable result for every stage that ran.
 
-## Getting started
+The repository includes the versioned JSON API, a Filament administration panel for loans and workflow configuration, a PostgreSQL production setup, and a Pest test suite.
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+## Main capabilities
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+- Submit and inspect loan applications through `/api/v1/loans`.
+- Process validation, fraud, guarantor, credit, and conditional manager-approval stages.
+- Stop on rejection or manual review and safely return terminal results on repeated requests.
+- Configure and publish versioned workflows per loan type through the admin panel.
+- Preserve stage results and the exact rule snapshot used for each decision.
+- Inspect service readiness through `GET /health`.
 
-## Add your files
+The complete HTTP contract is in [docs/api-routes.md](docs/api-routes.md).
 
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+## Technology
 
+- PHP 8.4 and Laravel 13
+- Filament 5 and Livewire 4
+- PostgreSQL 17 in the Compose environment; SQLite is supported for tests and the standalone image
+- Eloquent ORM
+- Pest 4 and PHPUnit 12
+- Tailwind CSS 4 and Vite 8
+- Apache in the production container
+
+## Run with Docker
+
+The challenge-compatible standalone image uses its internal SQLite database. The entrypoint migrates and seeds the database on startup.
+
+```bash
+docker build -t bankflow .
+docker run --rm -p 8080:8080 bankflow
 ```
-cd existing_repo
-git remote add origin https://git.sharifict.com/star-bugs/bank-flow.git
-git branch -M main
-git push -uf origin main
+
+The service is then available on port `8080`; verify it with:
+
+```bash
+curl http://127.0.0.1:8080/health
 ```
 
-## Integrate with your tools
+For PostgreSQL-backed execution, copy the environment file, set `APP_KEY` and `DB_PASSWORD`, then use Compose:
 
-* [Set up project integrations](https://git.sharifict.com/star-bugs/bank-flow/-/settings/integrations)
+```bash
+cp .env.example .env
+docker compose up --build
+```
 
-## Collaborate with your team
+Compose persists PostgreSQL data in the `postgres-data` volume. Both container paths run migrations and the idempotent `BankFlowSeeder` automatically.
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+## Local development
 
-## Test and Deploy
+### Prerequisites
 
-Use the built-in continuous integration in GitLab.
+- PHP 8.4 with the extensions required by Laravel and the selected database
+- Composer 2
+- Node.js 24 and npm
+- PostgreSQL, or SQLite for a lightweight local setup
+- Laravel Herd or another locally configured web server
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+Install and configure the application:
 
-***
+```bash
+cp .env.example .env
+composer install
+php artisan key:generate
+npm install
+npm run build
+php artisan migrate --seed
+```
 
-# Editing this README
+Before migrating, update the `DB_*` values in `.env` for the database reachable from the host. To use SQLite, set `DB_CONNECTION=sqlite`, remove the other `DB_*` values, and create `database/database.sqlite` if it does not exist.
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+For active frontend work, run `npm run dev`. The application is already served by Laravel Herd in the standard project environment; no additional PHP development server is required.
 
-## Suggestions for a good README
+The administration panel is mounted at `/admin`. It requires an authenticated user with a verified email address.
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+## API example
 
-## Name
-Choose a self-explaining name for your project.
+Create and process a loan:
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+```bash
+curl -X POST http://127.0.0.1:8080/api/v1/loans \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "customerId": "C-1001",
+    "amount": 400000000,
+    "phone": "09121234567",
+    "loanType": "PERSONAL",
+    "monthlyIncome": 50000000,
+    "creditScore": 720,
+    "hasGuarantor": false
+  }'
+```
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+Use the returned `loanId`:
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+```bash
+curl -X POST http://127.0.0.1:8080/api/v1/loans/{loanId}/process
+curl http://127.0.0.1:8080/api/v1/loans/{loanId}
+curl http://127.0.0.1:8080/api/v1/loans/{loanId}/history
+```
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+## Tests and formatting
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+The test environment uses an in-memory SQLite database and does not require PostgreSQL.
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+```bash
+php artisan test --compact
+vendor/bin/pint --format agent
+```
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+Run a focused test with `php artisan test --compact --filter=ProcessLoanTest`. See [TESTING.md](TESTING.md) for the test strategy and current coverage.
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+## Project layout
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+```text
+app/Actions/                 Single-use application operations and transactions
+app/Domain/Loan/             Enums, stage contracts, stage handlers, and engine
+app/Filament/                Administrative resources, pages, and widgets
+app/Http/                    API controllers, request parsing, and resources
+app/Models/                  Eloquent persistence models
+config/workflow-stages.php   Trusted stage-code-to-handler registry
+database/                    Migrations, factories, and initial workflow seed data
+docs/                        Requirements, API contract, and implementation blueprint
+routes/                      Web and versioned API routes
+tests/                       Pest feature and unit tests
+```
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+## Further documentation
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+- [DESIGN.md](DESIGN.md) — runtime architecture, workflow model, state, and extensibility
+- [ENGINEERING_DECISIONS.md](ENGINEERING_DECISIONS.md) — alternatives, trade-offs, limitations, and future work
+- [TESTING.md](TESTING.md) — test scope and commands
+- [docs/bank-flow.md](docs/bank-flow.md) — original challenge requirements
+- [docs/project-blueprint.md](docs/project-blueprint.md) — detailed implementation blueprint
