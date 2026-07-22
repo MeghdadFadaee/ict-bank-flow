@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\WorkflowConfigurations\Schemas;
 
 use App\Domain\Loan\Enums\WorkflowConfigurationStatus;
+use App\Models\WorkflowConfigurationStep;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
@@ -56,7 +57,7 @@ class WorkflowConfigurationInfolist
                                 IconEntry::make('is_enabled')->label('Enabled')->boolean(),
                                 TextEntry::make('rules')
                                     ->label('Rules')
-                                    ->formatStateUsing(fn (array $state): string => collect($state)
+                                    ->state(fn (WorkflowConfigurationStep $record): string => collect($record->rules)
                                         ->map(fn (mixed $value, string $key): string => str($key)->headline().': '.(is_bool($value) ? ($value ? 'Yes' : 'No') : $value))
                                         ->implode(' · '))
                                     ->placeholder('No configurable rules')

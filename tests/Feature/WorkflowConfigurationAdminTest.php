@@ -4,14 +4,36 @@ use App\Actions\WorkflowConfiguration\CreateWorkflowConfigurationAction;
 use App\Actions\WorkflowConfiguration\PublishWorkflowConfigurationAction;
 use App\Domain\Loan\Enums\LoanStage;
 use App\Domain\Loan\Enums\WorkflowConfigurationStatus;
+use App\Filament\Resources\WorkflowConfigurations\Pages\ViewWorkflowConfiguration;
 use App\Models\LoanType;
 use App\Models\StageDefinition;
 use App\Models\User;
 use App\Models\WorkflowConfiguration;
+use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Validation\ValidationException;
+use Livewire\Livewire;
 
 uses(LazilyRefreshDatabase::class);
+
+test('a workflow with configured rules can be viewed', function () {
+    $user = User::factory()->create();
+    $stage = StageDefinition::factory()->forStage(LoanStage::FraudCheck)->create();
+    $workflow = WorkflowConfiguration::factory()
+        ->withStep($stage, 1, [
+            'fraudPrefix' => 'FRAUD',
+            'guarantorRequired' => true,
+        ])
+        ->create();
+
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+
+    Livewire::actingAs($user)
+        ->test(ViewWorkflowConfiguration::class, ['record' => $workflow->getRouteKey()])
+        ->assertOk()
+        ->assertSee('Fraud Prefix: FRAUD')
+        ->assertSee('Guarantor Required: Yes');
+});
 
 test('copying a workflow creates an isolated next draft version', function () {
     $user = User::factory()->create();
