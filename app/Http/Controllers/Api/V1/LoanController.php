@@ -16,24 +16,24 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class LoanController extends Controller
 {
-    public function store(StoreLoanRequest $request, CreateLoanAction $createLoan): JsonResponse
+    public function store(StoreLoanRequest $request, CreateLoanAction $createLoan)
     {
         $loan = $createLoan->handle($request->validated());
 
-        return (new LoanProcessResource($loan))->response()->setStatusCode(201);
+        return LoanProcessResource::make($loan);
     }
 
-    public function process(string $loanId, ProcessLoanAction $processLoan): JsonResponse
+    public function process(string $loanId, ProcessLoanAction $processLoan)
     {
-        return (new LoanProcessResource($processLoan->handle($loanId)))->response();
+        return LoanProcessResource::make($processLoan->handle($loanId));
     }
 
-    public function show(string $loanId, GetLoanAction $getLoan): JsonResponse
+    public function show(string $loanId, GetLoanAction $getLoan)
     {
-        return (new LoanResource($getLoan->handle($loanId)))->response();
+        return LoanResource::make($getLoan->handle($loanId));
     }
 
-    public function history(string $loanId, GetLoanHistoryAction $getLoanHistory): AnonymousResourceCollection
+    public function history(string $loanId, GetLoanHistoryAction $getLoanHistory)
     {
         return LoanHistoryResource::collection($getLoanHistory->handle($loanId));
     }
