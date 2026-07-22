@@ -1,6 +1,10 @@
 const loanForm = document.querySelector('#loan-form');
 
 if (loanForm) {
+    const serviceStatus = document.querySelector('#service-status');
+    const serviceStatusPulse = document.querySelector('#service-status-pulse');
+    const serviceStatusDot = document.querySelector('#service-status-dot');
+    const serviceStatusLabel = document.querySelector('#service-status-label');
     const lookupForm = document.querySelector('#lookup-form');
     const resultPanel = document.querySelector('#result-panel');
     const processButton = document.querySelector('#process-loan');
@@ -8,7 +12,10 @@ if (loanForm) {
     const formMessage = document.querySelector('#form-message');
     const creditScore = document.querySelector('#credit-score');
     const creditScoreOutput = document.querySelector('#credit-score-output');
+    const healthCheckInterval = 3_000;
     let activeLoanId = null;
+    let healthCheckTimer = null;
+    let isCheckingService = false;
 
     const terminalStatuses = ['APPROVED', 'REJECTED', 'MANUAL_REVIEW'];
     const statusLabels = {
@@ -31,6 +38,58 @@ if (loanForm) {
         pending: '<svg class="size-6" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
         stopped: '<svg class="size-6" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 8v5m0 3v.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     };
+
+    const checkServiceHealth = async () => {
+        try {
+            const response = await fetch(serviceStatus.dataset.healthUrl, {
+                headers: {Accept: 'application/json'},
+                cache: 'no-store',
+                signal: AbortSignal.timeout(5_000),
+            });
+            const payload = await response.json();
+
+            if (!response.ok || payload.status !== 'UP') {
+                throw new Error('Service unavailable');
+            }
+
+            serviceStatusLabel.textContent = 'Service ready';
+            serviceStatusPulse.className = 'absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-60';
+            serviceStatusDot.className = 'relative inline-flex size-2 rounded-full bg-emerald-500';
+        } catch {
+            serviceStatusLabel.textContent = 'Service unavailable';
+            serviceStatusPulse.className = 'hidden';
+            serviceStatusDot.className = 'relative inline-flex size-2 rounded-full bg-rose-500';
+        }
+    };
+
+    const scheduleServiceHealthCheck = () => {
+        window.clearTimeout(healthCheckTimer);
+
+        if (!document.hidden) {
+            healthCheckTimer = window.setTimeout(pollServiceHealth, healthCheckInterval);
+        }
+    };
+
+    const pollServiceHealth = async () => {
+        if (isCheckingService) {
+            return;
+        }
+
+        isCheckingService = true;
+        await checkServiceHealth();
+        isCheckingService = false;
+        scheduleServiceHealthCheck();
+    };
+
+    document.addEventListener('visibilitychange', () => {
+        window.clearTimeout(healthCheckTimer);
+
+        if (!document.hidden) {
+            pollServiceHealth();
+        }
+    });
+
+    pollServiceHealth();
 
     creditScore.addEventListener('input', () => {
         creditScoreOutput.value = creditScore.value;

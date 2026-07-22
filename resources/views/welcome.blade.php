@@ -31,12 +31,12 @@
                     </span>
                 </a>
 
-                <div class="flex items-center gap-2 rounded-full border border-white/80 bg-white/65 px-3 py-2 text-xs font-medium text-slate-600 shadow-sm backdrop-blur-xl">
+                <div id="service-status" data-health-url="{{ route('health') }}" class="flex items-center gap-2 rounded-full border border-white/80 bg-white/65 px-3 py-2 text-xs font-medium text-slate-600 shadow-sm backdrop-blur-xl" aria-live="polite">
                     <span class="relative flex size-2">
-                        <span class="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-60"></span>
-                        <span class="relative inline-flex size-2 rounded-full bg-emerald-500"></span>
+                        <span id="service-status-pulse" class="absolute inline-flex size-full animate-ping rounded-full bg-slate-400 opacity-60"></span>
+                        <span id="service-status-dot" class="relative inline-flex size-2 rounded-full bg-slate-400"></span>
                     </span>
-                    API v1 ready
+                    <span id="service-status-label">Checking service</span>
                 </div>
             </header>
 
