@@ -1,0 +1,43 @@
+name: bankflow
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: bankflow:latest
+    env_file:
+      - .env
+    environment:
+      APP_URL: http://127.0.0.1:8080
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ${DB_DATABASE:-bankflow}
+      DB_USERNAME: ${DB_USERNAME:-bankflow}
+      DB_PASSWORD: ${DB_PASSWORD:-bankflow}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-bankflow}
+      POSTGRES_USER: ${DB_USERNAME:-bankflow}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-bankflow}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
