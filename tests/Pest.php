@@ -1,6 +1,6 @@
 <?php
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
 
 /*
@@ -15,7 +15,7 @@ use Tests\TestCase;
 */
 
 pest()->extend(TestCase::class)
- // ->use(RefreshDatabase::class)
+    ->use(LazilyRefreshDatabase::class)
     ->in('Feature');
 
 /*
@@ -44,7 +44,18 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+/**
+ * @return array<string, mixed>
+ */
+function validLoanPayload(array $overrides = []): array
 {
-    // ..
+    return array_replace([
+        'customerId' => 'C-1001',
+        'amount' => 400_000_000,
+        'phone' => '09121234567',
+        'loanType' => 'PERSONAL',
+        'monthlyIncome' => 50_000_000,
+        'creditScore' => 720,
+        'hasGuarantor' => false,
+    ], $overrides);
 }
