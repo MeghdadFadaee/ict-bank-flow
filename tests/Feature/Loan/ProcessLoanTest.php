@@ -1,5 +1,6 @@
 <?php
 
+use App\Domain\Loan\Enums\LoanStage;
 use App\Models\Loan;
 use Database\Seeders\BankFlowSeeder;
 
@@ -21,9 +22,9 @@ it('approves a valid personal loan and records applicable stages', function () {
     $loan = Loan::query()->where('public_id', $loanId)->firstOrFail();
 
     expect($loan->histories()->orderBy('id')->pluck('stage_code')->all())->toBe([
-        'VALIDATION',
-        'FRAUD_CHECK',
-        'CREDIT_CHECK',
+        LoanStage::Validation,
+        LoanStage::FraudCheck,
+        LoanStage::CreditCheck,
     ]);
 });
 
@@ -55,14 +56,14 @@ it('approves a valid business loan with a guarantor', function () {
     $loan = Loan::query()->where('public_id', $loanId)->firstOrFail();
 
     expect($loan->histories()->orderBy('id')->pluck('stage_code')->all())->toBe([
-        'VALIDATION',
-        'FRAUD_CHECK',
-        'GUARANTOR_CHECK',
-        'CREDIT_CHECK',
+        LoanStage::Validation,
+        LoanStage::FraudCheck,
+        LoanStage::GuarantorCheck,
+        LoanStage::CreditCheck,
     ]);
 });
 
-it('stops for fraud and credit manual review decisions', function (array $overrides, string $stage) {
+it('stops for fraud and credit manual review decisions', function (array $overrides, LoanStage $stage) {
     $loanId = $this->postJson('/api/v1/loans', validLoanPayload($overrides))->json('loanId');
 
     $this->postJson("/api/v1/loans/{$loanId}/process")
@@ -74,8 +75,8 @@ it('stops for fraud and credit manual review decisions', function (array $overri
 
     expect($loan->histories()->latest('id')->value('stage_code'))->toBe($stage);
 })->with([
-    'fraud review' => [['customerId' => 'REVIEW-1001'], 'FRAUD_CHECK'],
-    'credit review' => [['creditScore' => 600], 'CREDIT_CHECK'],
+    'fraud review' => [['customerId' => 'REVIEW-1001'], LoanStage::FraudCheck],
+    'credit review' => [['creditScore' => 600], LoanStage::CreditCheck],
 ]);
 
 it('executes manager approval only above its threshold', function (
