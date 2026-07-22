@@ -1,0 +1,11 @@
+{
+    "mcpServers": {
+        "laravel-boost": {
+            "command": "/Users/meghdad/Library/Application Support/Herd/bin/php84",
+            "args": [
+                "/Users/meghdad/PhpstormProjects/ict-bank-flow/artisan",
+                "boost:mcp"
+            ]
+        }
+    }
+}
