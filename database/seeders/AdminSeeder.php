@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class AdminSeeder extends Seeder
@@ -13,9 +12,18 @@ class AdminSeeder extends Seeder
      */
     public function run(): void
     {
-        $admin = User::factory()->create([
-            'name' => 'BankFlow Admin',
-            'email' => 'admin@bankflow.test',
-        ]);
+        $admin = User::query()->firstOrNew(['email' => 'admin@bankflow.test']);
+
+        $admin->name = 'BankFlow Admin';
+
+        if (! $admin->exists) {
+            $admin->password = 'password';
+        }
+
+        if (is_null($admin->email_verified_at)) {
+            $admin->email_verified_at = now();
+        }
+
+        $admin->save();
     }
 }
